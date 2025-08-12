@@ -156,6 +156,43 @@ func TestDSLEscaping(t *testing.T) {
 	}
 }
 
+// TestWaitForTimeout tests WaitFor timeout with screen content display
+func TestWaitForTimeout(t *testing.T) {
+	ctx := context.Background()
+
+	emu := vtermtest.New(6, 60).
+		Command("sh", "-c", "echo 'This is visible'; sleep 2").
+		Env("LANG=C.UTF-8", "TERM=xterm")
+
+	if err := emu.Start(ctx); err != nil {
+		t.Fatalf("failed to start emulator: %v", err)
+	}
+	defer emu.Close()
+
+	// Wait for initial output
+	time.Sleep(200 * time.Millisecond)
+
+	// Try to wait for text that won't appear
+	err := emu.WaitFor("NonExistentText", 500*time.Millisecond)
+	if err == nil {
+		t.Fatal("Expected WaitFor to timeout, but it succeeded")
+	}
+
+	// Check that error message contains screen content
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "NonExistentText") {
+		t.Errorf("Error message should contain the searched text")
+	}
+	if !strings.Contains(errMsg, "Current screen content:") {
+		t.Errorf("Error message should contain screen content header")
+	}
+	if !strings.Contains(errMsg, "This is visible") {
+		t.Errorf("Error message should contain actual screen content")
+	}
+
+	t.Logf("WaitFor timeout error message:\n%s", errMsg)
+}
+
 // TestWaitFor tests the WaitFor functionality
 func TestWaitFor(t *testing.T) {
 	ctx := context.Background()

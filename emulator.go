@@ -257,6 +257,7 @@ func (e *Emulator) WaitStable(quiet, timeout time.Duration) bool {
 // timeout: maximum time to wait for the text to appear
 func (e *Emulator) WaitFor(text string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
+	var lastScreen string
 
 	for {
 		screen, err := e.GetScreenText()
@@ -264,12 +265,13 @@ func (e *Emulator) WaitFor(text string, timeout time.Duration) error {
 			return fmt.Errorf("failed to get screen text: %w", err)
 		}
 
+		lastScreen = screen
 		if strings.Contains(screen, text) {
 			return nil
 		}
 
 		if time.Now().After(deadline) {
-			return fmt.Errorf("text %q not found within timeout", text)
+			return fmt.Errorf("text %q not found within timeout\nCurrent screen content:\n%s", text, lastScreen)
 		}
 
 		time.Sleep(50 * time.Millisecond)
