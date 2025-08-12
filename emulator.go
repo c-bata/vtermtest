@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/c-bata/vtermtest/keys"
 	"github.com/creack/pty"
 	libvterm "github.com/mattn/go-libvterm"
 )
@@ -189,6 +190,17 @@ func (e *Emulator) KeyPress(keys ...[]byte) error {
 		}
 	}
 	return nil
+}
+
+// KeyPressString sends keystrokes using DSL notation.
+// Example: "hello<Tab>world<C-c>" sends "hello", Tab key, "world", then Ctrl-C.
+// See keys.Parse for supported notation.
+func (e *Emulator) KeyPressString(dsl string) error {
+	parsedKeys, err := keys.Parse(dsl)
+	if err != nil {
+		return fmt.Errorf("parse DSL: %w", err)
+	}
+	return e.KeyPress(parsedKeys...)
 }
 
 // WaitStable waits until the screen output is stable (no changes for 'quiet' duration).

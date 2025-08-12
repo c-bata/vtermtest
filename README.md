@@ -118,24 +118,52 @@ func TestSnapshotGoPrompt(t *testing.T) {
 
 ### Keys API
 
-```
+#### Keys
+
+```go
 // Text & printable
-K.Text("use")
+keys.Text("use")
 
 // Common keys
-K.Tab
-K.Enter
-K.Backspace
-K.Up, K.Down, K.Left, K.Right
-K.Home, K.End, K.PageUp, K.PageDown
-K.Delete
+keys.Tab
+keys.Enter
+keys.Backspace
+keys.Up, keys.Down, keys.Left, keys.Right
+keys.Home, keys.End, keys.PageUp, keys.PageDown
+keys.Delete
 
 // Fn Keys
-K.F(1) ... K.F(24)
+keys.F(1) ... keys.F(24)
 
 // Ctrl keys
-K.CtrlA, K.CtrlB, K.CtrlC
+keys.CtrlA, keys.CtrlB, keys.CtrlC
 ```
+
+#### DSL
+
+```go
+// Simple text with special keys
+emu.KeyPressString("SELECT * FROM us<Tab>")
+
+// Vim-like operations
+emu.KeyPressString("ihello world<Esc>:wq<Enter>")
+
+// Complex editing
+emu.KeyPressString("<C-a>deleted<C-k>new text<Enter>")
+
+// Escaped angle brackets
+emu.KeyPressString("echo <<literal angle bracket>>")
+```
+
+**DSL Notation:**
+- Regular text: typed as-is
+- Special keys: `<Tab>` `<Enter>` `<BS>` `<Del>` `<Esc>` `<Space>`
+- Arrow keys: `<Up>` `<Down>` `<Left>` `<Right>`
+- Ctrl keys: `<C-a>` ... `<C-z>`
+- Alt keys: `<A-a>` ... `<A-z>`
+- Function keys: `<F1>` ... `<F24>`
+- Navigation: `<Home>` `<End>` `<PageUp>` `<PageDown>`
+- Escape: `<<` for literal `<`
 
 ## Limitations
 
