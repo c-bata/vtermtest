@@ -40,23 +40,23 @@
 ## Phase 2: Basic Functionality
 
 ### Enhanced Keys Support
-- [ ] Expand keys package
+- [x] Expand keys package
     - Add arrow keys (Up, Down, Left, Right)
     - Add common control keys (Ctrl+C, Ctrl+D)
     - Add function keys (F1-F12)
 
 ### Basic Stability
-- [ ] Add timing mechanisms
+- [x] Add timing mechanisms
     - Implement simple `WaitStable()` method
     - Add basic timeout handling
 
 ### Basic Configuration Options
-- [ ] Add environment configuration
+- [x] Add environment configuration
     - Implement `Env()` method
     - Implement `Dir()` method
 
 ### Error Handling
-- [ ] Basic error handling
+- [x] Basic error handling
     - Add error returns for all public methods
     - Implement basic cleanup on Close()
     - Prevent zombie processes

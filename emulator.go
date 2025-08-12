@@ -3,9 +3,11 @@ package vtermtest
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -113,25 +115,49 @@ func (e *Emulator) readLoop() {
 }
 
 func (e *Emulator) Close() error {
+	var errs []error
+
+	// Close PTY
 	if e.ptmx != nil {
-		e.ptmx.Close()
+		if err := e.ptmx.Close(); err != nil {
+			errs = append(errs, err)
+		}
 	}
 
+	// Kill process if still running
 	if e.cmd != nil && e.cmd.Process != nil {
-		e.cmd.Process.Kill()
-		e.cmd.Wait()
+		if err := e.cmd.Process.Kill(); err != nil {
+			// Process might already be dead, which is OK
+			if !strings.Contains(err.Error(), "process already finished") {
+				errs = append(errs, err)
+			}
+		}
+		// Wait for process to exit
+		if err := e.cmd.Wait(); err != nil {
+			// Ignore "signal: killed" errors
+			if !strings.Contains(err.Error(), "signal: killed") {
+				errs = append(errs, err)
+			}
+		}
 	}
 
+	// Wait for reader goroutine to finish
 	select {
 	case <-e.readerDone:
 	case <-time.After(2 * time.Second):
-		// Timeout waiting for reader
+		errs = append(errs, errors.New("timeout waiting for reader to finish"))
 	}
 
+	// Close libvterm
 	if e.vt != nil {
-		e.vt.Close()
+		if err := e.vt.Close(); err != nil {
+			errs = append(errs, err)
+		}
 	}
 
+	if len(errs) > 0 {
+		return errors.New(fmt.Sprintf("close errors: %v", errs))
+	}
 	return nil
 }
 

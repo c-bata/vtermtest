@@ -16,6 +16,26 @@ var (
 	CtrlD = []byte{0x04}
 	CtrlE = []byte{0x05}
 	CtrlF = []byte{0x06}
+	CtrlG = []byte{0x07}
+	CtrlH = []byte{0x08}
+	CtrlI = []byte{0x09} // Same as Tab
+	CtrlJ = []byte{0x0A} // LF
+	CtrlK = []byte{0x0B}
+	CtrlL = []byte{0x0C}
+	CtrlM = []byte{0x0D} // Same as Enter (CR)
+	CtrlN = []byte{0x0E}
+	CtrlO = []byte{0x0F}
+	CtrlP = []byte{0x10}
+	CtrlQ = []byte{0x11}
+	CtrlR = []byte{0x12}
+	CtrlS = []byte{0x13}
+	CtrlT = []byte{0x14}
+	CtrlU = []byte{0x15}
+	CtrlV = []byte{0x16}
+	CtrlW = []byte{0x17}
+	CtrlX = []byte{0x18}
+	CtrlY = []byte{0x19}
+	CtrlZ = []byte{0x1A}
 )
 
 func Text(s string) []byte {
