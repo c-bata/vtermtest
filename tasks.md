@@ -3,36 +3,36 @@
 ## Phase 1: MVP (Minimum Viable Product)
 
 ### Core Dependencies Setup
-- [ ] Manage dependencies
+- [x] Manage dependencies
     - Add `github.com/creack/pty`
     - Add `github.com/mattn/go-libvterm`
     - Add `github.com/mattn/go-runewidth`
 
 ### Core Implementation (Essential)
-- [ ] Implement core emulator module
+- [x] Implement core emulator module
     - Create `emulator.go` with `Emulator` struct
     - Implement PTY lifecycle management (Start, Close)
     - Add libvterm integration
     - Implement reader goroutine for PTY output
     - Add basic synchronization with mutex
 
-- [ ] Implement minimal screen capture
+- [x] Implement minimal screen capture
     - Create `screen.go` with basic screen reading
     - Implement simple `GetScreenText()` method
     - Add basic trailing space trimming
 
-- [ ] Implement minimal keys package
+- [x] Implement minimal keys package
     - Create `keys/keys.go` with basic key types
     - Add printable text support (`Text()`)
     - Implement essential keys only (Tab, Enter, Backspace)
 
 ### Basic Configuration
-- [ ] Implement essential builder methods
+- [x] Implement essential builder methods
     - Add `Command()` for process execution
     - Add `New()` constructor with rows/cols
 
 ### Minimal Testing
-- [ ] Create basic example
+- [x] Create basic example
     - Add simple `_examples/simple_example.go` demo
     - Create one working integration test
     - Verify PTY creation and basic I/O works
