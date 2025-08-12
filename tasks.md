@@ -1,6 +1,6 @@
 # vtermtest Tasks
 
-## Phase 1: MVP (Minimum Viable Product)
+## Phase 1: MVP (Minimum Viable Product) ✅
 
 ### Core Dependencies Setup
 - [x] Manage dependencies
@@ -37,12 +37,12 @@
     - Create one working integration test
     - Verify PTY creation and basic I/O works
 
-## Phase 2: Basic Functionality
+## Phase 2: Basic Functionality ✅
 
 ### Enhanced Keys Support
 - [x] Expand keys package
     - Add arrow keys (Up, Down, Left, Right)
-    - Add common control keys (Ctrl+C, Ctrl+D)
+    - Add all control keys (Ctrl+A to Ctrl+Z)
     - Add function keys (F1-F12)
 
 ### Basic Stability
@@ -58,48 +58,43 @@
 ### Error Handling
 - [x] Basic error handling
     - Add error returns for all public methods
-    - Implement basic cleanup on Close()
+    - Implement improved cleanup on Close()
     - Prevent zombie processes
 
-## Phase 3: Usability Improvements
+## Phase 3: Usability Improvements ✅
 
 ### Assertions (Testing Convenience)
-- [ ] Implement assertion module
+- [x] Implement assertion module
     - Create `assert.go`
-    - Implement `AssertScreenEqual()` with basic retry
+    - Implement `AssertScreenEqual()` with retry
     - Implement `AssertLineEqual()`
+    - Implement `AssertScreenContains()`
+    - Add exponential backoff retry logic
+    - Add configurable retry options (`WithAssertMaxAttempts()`, `WithAssertInitialDelay()`, `WithAssertBackoffFactor()`)
 
 ### Unicode Support
-- [ ] Unicode improvements
+- [x] Unicode improvements
     - Integrate go-runewidth for CJK support
-    - Test with emoji and wide characters
+    - Proper Unicode width handling in screen capture
 
-### Documentation
-- [ ] Create basic documentation
-    - Write simple README.md with quickstart
-    - Add minimal inline comments
-    - Create one complete example
+### Documentation & Examples
+- [x] Create examples and documentation
+    - Update README.md with usage examples
+    - Update ARCHITECTURE.md with Unicode handling
+    - Create go-prompt example (`_examples/goprompt/`)
+    - Create test examples with assertions
 
 ## Phase 4: Polish & Stability
 
-### Advanced Assertions
-- [ ] Enhanced assertions
-    - Implement `AssertScreenContains()`
-    - Add retry logic with exponential backoff
-    - Add configurable retry options
-
 ### Advanced Keys
 - [ ] Complete keys support
-    - Add all function keys (F1-F24)
+    - Add all function keys (F13-F24)
     - Add Home, End, PageUp, PageDown
     - Add Alt key combinations
     - Add Delete key
 
-### Configuration Options
+### Additional Configuration Options
 - [ ] Add optional configurations
-    - Add `WithAssertMaxAttempts()`
-    - Add `WithAssertInitialDelay()`
-    - Add `WithAssertBackoffFactor()`
     - Add `WithTrimTrailingSpaces()`
     - Add `WithEnterNewline()` and `WithBackspaceBS()`
 
@@ -130,9 +125,8 @@
 
 ### Documentation
 - [ ] Complete documentation
-    - Finalize ARCHITECTURE.md
-    - Fix all documentation inconsistencies
     - Add contribution guidelines
+    - Create more complex examples
 
 ### Export Capabilities
 - [ ] Export features
@@ -158,15 +152,14 @@
     - Sanitize environment variables
     - Add security documentation
 
-## Known Issues to Fix
+## Completed Issues
 
-- [ ] Fix documentation issues
-    - Fix API inconsistency (Send/SendAll vs KeyPress)
-    - Fix syntax error in README.md line 36
-    - Fix error handling examples consistency
-    - Correct variable assignment in README.md line 96
+### Fixed Documentation Issues
+- [x] Updated ARCHITECTURE.md with go-runewidth integration
+- [x] API is now consistent (KeyPress throughout)
+- [x] Created working examples with proper error handling
 
-- [ ] Fix design issues
-    - Add context cancellation support in reader goroutine
-    - Improve error handling consistency
-    - Address potential deadlock in mutex usage
+### Fixed Design Issues
+- [x] Improved error handling with error collection in Close()
+- [x] Added proper mutex synchronization
+- [x] Implemented TestingT interface for better testability

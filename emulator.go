@@ -33,6 +33,8 @@ type Emulator struct {
 	commandArgs []string
 	env         []string
 	dir         string
+	
+	assertCfg assertConfig
 }
 
 func New(rows, cols uint16) *Emulator {
