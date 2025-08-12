@@ -156,6 +156,99 @@ func TestDSLEscaping(t *testing.T) {
 	}
 }
 
+// TestWaitFor tests the WaitFor functionality
+func TestWaitFor(t *testing.T) {
+	ctx := context.Background()
+
+	emu := vtermtest.New(6, 60).
+		Command("sh", "-c", "echo 'Loading...'; sleep 0.5; echo 'Ready!'").
+		Env("LANG=C.UTF-8", "TERM=xterm")
+
+	if err := emu.Start(ctx); err != nil {
+		t.Fatalf("failed to start emulator: %v", err)
+	}
+	defer emu.Close()
+
+	// Test WaitFor API directly
+	if err := emu.WaitFor("Ready!", 2*time.Second); err != nil {
+		t.Fatalf("WaitFor failed: %v", err)
+	}
+
+	// Test WaitFor via DSL
+	emu2 := vtermtest.New(6, 60).
+		Command("sh", "-c", "echo 'Starting...'; sleep 0.3; echo 'Done!'").
+		Env("LANG=C.UTF-8", "TERM=xterm")
+
+	if err := emu2.Start(ctx); err != nil {
+		t.Fatalf("failed to start emulator2: %v", err)
+	}
+	defer emu2.Close()
+
+	// Use DSL with WaitFor
+	if err := emu2.KeyPressString("<WaitFor Done!>"); err != nil {
+		t.Fatalf("DSL WaitFor failed: %v", err)
+	}
+
+	screen, err := emu2.GetScreenText()
+	if err != nil {
+		t.Fatalf("failed to get screen: %v", err)
+	}
+
+	if !contains(screen, "Done!") {
+		t.Errorf("Expected to see 'Done!' in screen output")
+	}
+}
+
+// TestDSLCustomDelimiters tests custom tag delimiters
+func TestDSLCustomDelimiters(t *testing.T) {
+	opts := keys.ParseOptions{
+		TagStart: '[',
+		TagEnd:   ']',
+	}
+
+	tests := []struct {
+		name     string
+		dsl      string
+		expected [][]byte
+	}{
+		{
+			name:     "simple text with brackets",
+			dsl:      "hello[Tab]world",
+			expected: [][]byte{keys.Text("hello"), keys.Tab, keys.Text("world")},
+		},
+		{
+			name:     "escaped brackets",
+			dsl:      "hello[[world]]test",
+			expected: [][]byte{keys.Text("hello[world]]test")},
+		},
+		{
+			name:     "ctrl keys with brackets",
+			dsl:      "[C-a][C-c]",
+			expected: [][]byte{keys.CtrlA, keys.CtrlC},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := keys.ParseWithOptions(tt.dsl, opts)
+			if err != nil {
+				t.Fatalf("ParseWithOptions failed: %v", err)
+			}
+
+			if len(result) != len(tt.expected) {
+				t.Fatalf("Length mismatch: got %d, expected %d", len(result), len(tt.expected))
+			}
+
+			for i, got := range result {
+				expected := tt.expected[i]
+				if !bytesEqual(got, expected) {
+					t.Errorf("Sequence %d mismatch: got %v, expected %v", i, got, expected)
+				}
+			}
+		})
+	}
+}
+
 // TestDSLParserIntegration tests that the DSL parser produces the same output as manual key construction
 func TestDSLParserIntegration(t *testing.T) {
 	tests := []struct {

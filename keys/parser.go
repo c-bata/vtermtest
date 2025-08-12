@@ -7,7 +7,23 @@ import (
 	"unicode"
 )
 
-// Parse converts DSL string to key sequences.
+// ParseOptions configures DSL parsing behavior.
+type ParseOptions struct {
+	// TagStart is the character that starts a special key tag (default: '<')
+	TagStart rune
+	// TagEnd is the character that ends a special key tag (default: '>')
+	TagEnd rune
+}
+
+// DefaultParseOptions returns the default parsing options.
+func DefaultParseOptions() ParseOptions {
+	return ParseOptions{
+		TagStart: '<',
+		TagEnd:   '>',
+	}
+}
+
+// Parse converts DSL string to key sequences using default options.
 // Example: "hello<Tab>world<C-c>" -> [Text("hello"), Tab, Text("world"), CtrlC]
 //
 // DSL notation:
@@ -20,15 +36,24 @@ import (
 //   - Navigation: <Home> <End> <PageUp> <PageDown>
 //   - Escape: << for literal <
 func Parse(dsl string) ([][]byte, error) {
+	return ParseWithOptions(dsl, DefaultParseOptions())
+}
+
+// ParseWithOptions converts DSL string to key sequences with custom tag delimiters.
+// Example with options {TagStart: '[', TagEnd: ']'}: "hello[Tab]world[C-c]"
+func ParseWithOptions(dsl string, opts ParseOptions) ([][]byte, error) {
 	var result [][]byte
 	var text strings.Builder
 
+	tagStartByte := byte(opts.TagStart)
+	tagEndByte := byte(opts.TagEnd)
+
 	for i := 0; i < len(dsl); i++ {
-		if dsl[i] == '<' {
-			// Check for escaped < (<<)
-			if i+1 < len(dsl) && dsl[i+1] == '<' {
-				text.WriteByte('<')
-				i++ // Skip the second <
+		if dsl[i] == tagStartByte {
+			// Check for escaped tag start (e.g., << or [[)
+			if i+1 < len(dsl) && dsl[i+1] == tagStartByte {
+				text.WriteByte(tagStartByte)
+				i++ // Skip the second tag start
 				continue
 			}
 
@@ -38,10 +63,16 @@ func Parse(dsl string) ([][]byte, error) {
 				text.Reset()
 			}
 
-			// Find closing >
-			end := strings.IndexByte(dsl[i+1:], '>')
+			// Find closing tag
+			end := -1
+			for j := i + 1; j < len(dsl); j++ {
+				if dsl[j] == tagEndByte {
+					end = j - i - 1
+					break
+				}
+			}
 			if end == -1 {
-				return nil, fmt.Errorf("unclosed '<' at position %d", i)
+				return nil, fmt.Errorf("unclosed '%c' at position %d", opts.TagStart, i)
 			}
 
 			keyName := dsl[i+1 : i+1+end]
@@ -51,7 +82,7 @@ func Parse(dsl string) ([][]byte, error) {
 			}
 
 			result = append(result, key)
-			i += end + 1 // Skip past the >
+			i += end + 1 // Skip past the tag end
 		} else {
 			text.WriteByte(dsl[i])
 		}
@@ -96,6 +127,14 @@ func parseSpecialKey(name string) ([]byte, error) {
 		return PageUp, nil
 	case "pagedown":
 		return PageDown, nil
+	case "waitstable":
+		return []byte("__WAITSTABLE__"), nil
+	}
+
+	// Handle WaitFor with text parameter
+	if strings.HasPrefix(strings.ToLower(name), "waitfor ") {
+		text := strings.TrimSpace(name[8:]) // Remove "waitfor " prefix
+		return []byte("__WAITFOR__" + text), nil
 	}
 
 	// Handle Ctrl-X format (C-a, C-b, etc.)

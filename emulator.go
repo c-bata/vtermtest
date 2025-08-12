@@ -37,7 +37,7 @@ type Emulator struct {
 	commandArgs []string
 	env         []string
 	dir         string
-	
+
 	assertCfg assertConfig
 }
 
@@ -194,13 +194,38 @@ func (e *Emulator) KeyPress(keys ...[]byte) error {
 
 // KeyPressString sends keystrokes using DSL notation.
 // Example: "hello<Tab>world<C-c>" sends "hello", Tab key, "world", then Ctrl-C.
+// Special DSL: <WaitStable> waits for screen to stabilize.
 // See keys.Parse for supported notation.
 func (e *Emulator) KeyPressString(dsl string) error {
-	parsedKeys, err := keys.Parse(dsl)
+	return e.KeyPressStringWithOptions(dsl, keys.DefaultParseOptions())
+}
+
+// KeyPressStringWithOptions sends keystrokes using DSL notation with custom tag delimiters.
+// Example with options {TagStart: '[', TagEnd: ']'}: "hello[Tab]world[C-c]"
+func (e *Emulator) KeyPressStringWithOptions(dsl string, opts keys.ParseOptions) error {
+	parsedKeys, err := keys.ParseWithOptions(dsl, opts)
 	if err != nil {
 		return fmt.Errorf("parse DSL: %w", err)
 	}
-	return e.KeyPress(parsedKeys...)
+
+	for _, key := range parsedKeys {
+		keyStr := string(key)
+		if keyStr == "__WAITSTABLE__" {
+			if !e.WaitStable(100*time.Millisecond, 5*time.Second) {
+				return fmt.Errorf("screen did not stabilize")
+			}
+		} else if strings.HasPrefix(keyStr, "__WAITFOR__") {
+			text := keyStr[11:] // Remove "__WAITFOR__" prefix
+			if err := e.WaitFor(text, 5*time.Second); err != nil {
+				return err
+			}
+		} else {
+			if err := e.KeyPress(key); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // WaitStable waits until the screen output is stable (no changes for 'quiet' duration).
@@ -224,6 +249,30 @@ func (e *Emulator) WaitStable(quiet, timeout time.Duration) bool {
 		}
 
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// WaitFor waits until the specified text appears on the screen.
+// Returns error if text doesn't appear within timeout.
+// timeout: maximum time to wait for the text to appear
+func (e *Emulator) WaitFor(text string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+
+	for {
+		screen, err := e.GetScreenText()
+		if err != nil {
+			return fmt.Errorf("failed to get screen text: %w", err)
+		}
+
+		if strings.Contains(screen, text) {
+			return nil
+		}
+
+		if time.Now().After(deadline) {
+			return fmt.Errorf("text %q not found within timeout", text)
+		}
+
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 
