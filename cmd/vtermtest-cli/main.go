@@ -14,17 +14,18 @@ import (
 
 func main() {
 	var (
-		rows      = flag.Int("rows", 24, "Terminal rows (height)")
-		cols      = flag.Int("cols", 80, "Terminal columns (width)")
-		command   = flag.String("command", "", "Command to execute (required)")
-		keySeq    = flag.String("keys", "", "Key sequence in DSL format (e.g., 'hello<Tab>world<Enter>')")
-		output    = flag.String("output", "", "Output file (default: stdout)")
-		timeout   = flag.Duration("timeout", 5*time.Second, "Timeout for screen stabilization")
-		quiet     = flag.Duration("quiet", 100*time.Millisecond, "Quiet period to consider screen stable")
-		env       = flag.String("env", "", "Environment variables (comma-separated KEY=VALUE pairs)")
-		dir       = flag.String("dir", "", "Working directory")
-		delimiter = flag.String("delimiter", "<>", "DSL tag delimiters (2 characters, e.g., '<>', '[]', '{}')")
-		help      = flag.Bool("help", false, "Show help message")
+		rows           = flag.Int("rows", 24, "Terminal rows (height)")
+		cols           = flag.Int("cols", 80, "Terminal columns (width)")
+		command        = flag.String("command", "", "Command to execute (required)")
+		keySeq         = flag.String("keys", "", "Key sequence in DSL format (e.g., 'hello<Tab>world<Enter>')")
+		output         = flag.String("output", "", "Output file (default: stdout)")
+		timeout        = flag.Duration("timeout", 30*time.Second, "Total timeout for command execution")
+		stableDuration = flag.Duration("stable-duration", 200*time.Millisecond, "Duration screen must remain unchanged to be considered stable")
+		stableTimeout  = flag.Duration("stable-timeout", 10*time.Second, "Timeout for screen stabilization")
+		env            = flag.String("env", "", "Environment variables (comma-separated KEY=VALUE pairs)")
+		dir            = flag.String("dir", "", "Working directory")
+		delimiter      = flag.String("delimiter", "<>", "DSL tag delimiters (2 characters, e.g., '<>', '[]', '{}')")
+		help           = flag.Bool("help", false, "Show help message")
 	)
 
 	flag.Parse()
@@ -67,16 +68,26 @@ func main() {
 		emu.Dir(*dir)
 	}
 
-	// Start emulator
-	ctx := context.Background()
+	// Start emulator with timeout context
+	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+	defer cancel()
+
 	if err := emu.Start(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "Error starting emulator: %v\n", err)
 		os.Exit(1)
 	}
 	defer emu.Close()
 
+	// Check if context is already cancelled
+	select {
+	case <-ctx.Done():
+		fmt.Fprintf(os.Stderr, "Error: command execution timed out\n")
+		os.Exit(1)
+	default:
+	}
+
 	// Wait for initial screen to stabilize
-	if !emu.WaitStable(*quiet, *timeout) {
+	if !emu.WaitStable(*stableDuration, *stableTimeout) {
 		fmt.Fprintf(os.Stderr, "Warning: initial screen did not stabilize within timeout\n")
 	}
 
@@ -101,8 +112,16 @@ func main() {
 		}
 	}
 
+	// Check if context is cancelled after key input
+	select {
+	case <-ctx.Done():
+		fmt.Fprintf(os.Stderr, "Error: command execution timed out\n")
+		os.Exit(1)
+	default:
+	}
+
 	// Wait for final screen to stabilize
-	if !emu.WaitStable(*quiet, *timeout) {
+	if !emu.WaitStable(*stableDuration, *stableTimeout) {
 		fmt.Fprintf(os.Stderr, "Warning: final screen did not stabilize within timeout\n")
 	}
 
@@ -137,8 +156,9 @@ OPTIONS:
     --rows INT          Terminal rows (default: 24)
     --cols INT          Terminal columns (default: 80)
     --output FILE       Output file (default: stdout)
-    --timeout DURATION  Screen stabilization timeout (default: 5s)
-    --quiet DURATION    Stabilization quiet period (default: 100ms)
+    --timeout DURATION  Total timeout for command execution (default: 30s)
+    --stable-duration DURATION  Duration screen must remain unchanged (default: 200ms)
+    --stable-timeout DURATION   Timeout for screen stabilization (default: 10s)
     --env STRING        Environment variables (KEY=VALUE,...)
     --dir STRING        Working directory
     --delimiter STRING  DSL tag delimiters (default: "<>")

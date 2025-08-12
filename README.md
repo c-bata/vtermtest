@@ -14,8 +14,54 @@ go get github.com/c-bata/vtermtest
 > [!NOTE]
 > Requires CGO and a working libvterm toolchain.
 
+### Command-line Interface
 
-### Quickstart (Assert Inline)
+```
+$ vtermtest-cli --command kube-prompt --keys "get p<Tab>" --rows 12
+kube-prompt v1.0.11 (rev-ac5964a)
+Please use `exit` or `Ctrl-D` to exit this program.
+>>> get p
+          persistentvolumeclaims
+          persistentvolumes
+          pod
+          podsecuritypolicies
+          podtemplates
+          pvc
+
+
+$
+```
+
+```
+$ vtermtest-cli --help
+vtermtest-cli - Terminal emulator testing tool
+
+USAGE:
+    vtermtest-cli --command "COMMAND" [OPTIONS]
+
+OPTIONS:
+    --command STRING    Command to execute (required)
+    --keys STRING       Key sequence in DSL format
+    --rows INT          Terminal rows (default: 24)
+    --cols INT          Terminal columns (default: 80)
+    --output FILE       Output file (default: stdout)
+    --timeout DURATION  Total timeout for command execution (default: 30s)
+    --stable-duration DURATION  Duration screen must remain unchanged (default: 200ms)
+    --stable-timeout DURATION   Timeout for screen stabilization (default: 10s)
+    --env STRING        Environment variables (KEY=VALUE,...)
+    --dir STRING        Working directory
+    --delimiter STRING  DSL tag delimiters (default: "<>")
+
+KEY DSL:
+    Text: hello world
+    Keys: <Tab> <Enter> <BS> <Del> <Esc> <Space> <Up> <Down> <Left> <Right>
+    Ctrl: <C-a> ... <C-z>  Alt: <A-a> ... <A-z>  Fn: <F1> ... <F24>
+    Nav: <Home> <End> <PageUp> <PageDown>
+    Wait: <WaitStable> <WaitFor text>
+    Escape: << (literal <)
+```
+
+### Quickstart (Go API)
 
 ```go
 package myapp_test

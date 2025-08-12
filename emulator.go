@@ -234,21 +234,40 @@ func (e *Emulator) KeyPressStringWithOptions(dsl string, opts keys.ParseOptions)
 // timeout: maximum time to wait
 func (e *Emulator) WaitStable(quiet, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
+	var lastScreen string
+	var stableStart time.Time
+
+	// Get initial screen content
+	screen, err := e.GetScreenText()
+	if err != nil {
+		return false
+	}
+	lastScreen = screen
+	stableStart = time.Now()
 
 	for {
-		e.mu.Lock()
-		lastActivity := e.lastActivity
-		e.mu.Unlock()
-
-		if time.Since(lastActivity) >= quiet {
-			return true
-		}
-
 		if time.Now().After(deadline) {
 			return false
 		}
 
 		time.Sleep(10 * time.Millisecond)
+
+		// Get current screen content
+		currentScreen, err := e.GetScreenText()
+		if err != nil {
+			return false
+		}
+
+		if currentScreen == lastScreen {
+			// Screen content hasn't changed
+			if time.Since(stableStart) >= quiet {
+				return true
+			}
+		} else {
+			// Screen content changed, reset stable timer
+			lastScreen = currentScreen
+			stableStart = time.Now()
+		}
 	}
 }
 
