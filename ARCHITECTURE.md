@@ -203,9 +203,6 @@ func (e *Emulator) AssertScreenContains(t *testing.T, substr string)
 func (e *Emulator) WithAssertMaxAttempts(n int) *Emulator
 func (e *Emulator) WithAssertInitialDelay(d time.Duration) *Emulator
 func (e *Emulator) WithAssertBackoffFactor(f float64) *Emulator
-func (e *Emulator) WithTrimTrailingSpaces(enabled bool) *Emulator
-func (e *Emulator) WithEnterNewline(useLF bool) *Emulator      // default CR
-func (e *Emulator) WithBackspaceBS(useBS bool) *Emulator       // default DEL
 ```
 
 ## Unicode, width & wrapping

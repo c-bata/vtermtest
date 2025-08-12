@@ -195,3 +195,35 @@ func (e *Emulator) WaitStable(quiet, timeout time.Duration) bool {
 		time.Sleep(10 * time.Millisecond)
 	}
 }
+
+// Resize changes the terminal size
+func (e *Emulator) Resize(rows, cols uint16) error {
+	if e.ptmx == nil {
+		return errors.New("emulator not started")
+	}
+
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	// Update internal dimensions
+	e.rows = rows
+	e.cols = cols
+
+	// Resize PTY
+	if err := pty.Setsize(e.ptmx, &pty.Winsize{
+		Rows: rows,
+		Cols: cols,
+	}); err != nil {
+		return fmt.Errorf("failed to resize PTY: %w", err)
+	}
+
+	// Resize libvterm
+	if e.vt != nil {
+		e.vt.SetSize(int(rows), int(cols))
+	}
+
+	// Mark as activity to trigger any waiting operations
+	e.lastActivity = time.Now()
+
+	return nil
+}

@@ -13,7 +13,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-	emu := vtermtest.New(10, 80).
+	emu := vtermtest.New(8, 80).
 		Command("go", "run", "./simple_example/main.go").
 		Env("LANG=C.UTF-8", "TERM=xterm")
 
@@ -37,6 +37,15 @@ func main() {
 
 	// Get screen
 	screen, err := emu.GetScreenText()
+	if err != nil {
+		log.Fatalf("failed to get screen: %v", err)
+	}
+
+	fmt.Println(screen)
+
+	emu.Resize(8, 20)
+	emu.WaitStable(100*time.Millisecond, 2*time.Second)
+	screen, err = emu.GetScreenText()
 	if err != nil {
 		log.Fatalf("failed to get screen: %v", err)
 	}

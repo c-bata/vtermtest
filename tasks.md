@@ -93,25 +93,6 @@
     - Add Alt key combinations
     - Add Delete key
 
-### Additional Configuration Options
-- [ ] Add optional configurations
-    - Add `WithTrimTrailingSpaces()`
-    - Add `WithEnterNewline()` and `WithBackspaceBS()`
-
-### Platform Testing
-- [ ] Platform verification
-    - Test thoroughly on Linux
-    - Test thoroughly on macOS
-    - Document Windows limitations
-
-## Phase 5: Advanced Features (Future)
-
-### Testing Infrastructure
-- [ ] Enhanced testing
-    - Add golden/snapshot test support
-    - Create comprehensive test suite
-    - Add self-tests for all components
-
 ### Resize Support
 - [ ] Add resize capability
     - Implement `Resize()` method
