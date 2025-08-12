@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"os"
@@ -25,6 +26,8 @@ func main() {
 		env            = flag.String("env", "", "Environment variables (comma-separated KEY=VALUE pairs)")
 		dir            = flag.String("dir", "", "Working directory")
 		delimiter      = flag.String("delimiter", "<>", "DSL tag delimiters (2 characters, e.g., '<>', '[]', '{}')")
+		rawOutput      = flag.Bool("raw-output", false, "Output raw bytes from PTY instead of rendered screen")
+		rawFormat      = flag.String("raw-format", "binary", "Raw output format: binary, hex, escaped")
 		help           = flag.Bool("help", false, "Show help message")
 	)
 
@@ -46,6 +49,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Validate raw-format if raw-output is enabled
+	if *rawOutput {
+		if *rawFormat != "binary" && *rawFormat != "hex" && *rawFormat != "escaped" {
+			fmt.Fprintf(os.Stderr, "Error: invalid raw-format. Must be one of: binary, hex, escaped\n")
+			os.Exit(1)
+		}
+	}
+
 	// Parse command
 	cmdParts := parseCommand(*command)
 	if len(cmdParts) == 0 {
@@ -56,6 +67,11 @@ func main() {
 	// Create emulator
 	emu := vtermtest.New(uint16(*rows), uint16(*cols))
 	emu.Command(cmdParts[0], cmdParts[1:]...)
+
+	// Enable raw bytes collection if needed
+	if *rawOutput {
+		emu.EnableRawBytesCollection()
+	}
 
 	// Set environment variables
 	if *env != "" {
@@ -120,27 +136,53 @@ func main() {
 	default:
 	}
 
-	// Wait for final screen to stabilize
-	if !emu.WaitStable(*stableDuration, *stableTimeout) {
-		fmt.Fprintf(os.Stderr, "Warning: final screen did not stabilize within timeout\n")
+	// Wait for final screen to stabilize (only if not in raw output mode)
+	if !*rawOutput {
+		if !emu.WaitStable(*stableDuration, *stableTimeout) {
+			fmt.Fprintf(os.Stderr, "Warning: final screen did not stabilize within timeout\n")
+		}
 	}
 
-	// Get screen content
-	screen, err := emu.GetScreenText()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting screen content: %v\n", err)
-		os.Exit(1)
+	// Get output content
+	var outputData []byte
+	var err error
+
+	if *rawOutput {
+		// Get raw bytes from PTY
+		rawBytes := emu.GetRawBytes()
+		outputData, err = formatRawBytes(rawBytes, *rawFormat)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error formatting raw bytes: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		// Get rendered screen content
+		screen, screenErr := emu.GetScreenText()
+		if screenErr != nil {
+			fmt.Fprintf(os.Stderr, "Error getting screen content: %v\n", screenErr)
+			os.Exit(1)
+		}
+		outputData = []byte(screen)
 	}
 
 	// Output result
 	if *output == "" {
-		fmt.Print(screen)
+		if *rawOutput && *rawFormat == "binary" {
+			// For binary output to stdout, write directly
+			os.Stdout.Write(outputData)
+		} else {
+			fmt.Print(string(outputData))
+		}
 	} else {
-		if err := os.WriteFile(*output, []byte(screen), 0644); err != nil {
+		if err := os.WriteFile(*output, outputData, 0644); err != nil {
 			fmt.Fprintf(os.Stderr, "Error writing to file: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Fprintf(os.Stderr, "Screen content written to: %s\n", *output)
+		if *rawOutput {
+			fmt.Fprintf(os.Stderr, "Raw bytes (%s format) written to: %s\n", *rawFormat, *output)
+		} else {
+			fmt.Fprintf(os.Stderr, "Screen content written to: %s\n", *output)
+		}
 	}
 }
 
@@ -162,6 +204,8 @@ OPTIONS:
     --env STRING        Environment variables (KEY=VALUE,...)
     --dir STRING        Working directory
     --delimiter STRING  DSL tag delimiters (default: "<>")
+    --raw-output        Output raw bytes from PTY instead of rendered screen
+    --raw-format STRING Raw output format: binary, hex, escaped (default: binary)
 
 KEY DSL:
     Text: hello world
@@ -172,9 +216,17 @@ KEY DSL:
     Escape: << (literal <)
 
 EXAMPLES:
+    # Standard screen output
     vtermtest-cli --command "echo hello"
     vtermtest-cli --command "sh -c 'read x; echo \$x'" --keys "test<Enter>"
     vtermtest-cli --command "vim" --keys "ihello<Esc>:wq<Enter>" --output screen.txt
+    
+    # Raw bytes output for escape sequence analysis
+    vtermtest-cli --command "echo hello" --raw-output --raw-format hex
+    vtermtest-cli --command "your-app" --raw-output --output raw-bytes.bin
+    vtermtest-cli --command "your-app" --raw-output --raw-format escaped --output sequences.txt
+    
+    # Wait operations
     vtermtest-cli --command "sh -c 'sleep 1; echo Ready'" --keys "<WaitFor Ready>"
     vtermtest-cli --command "echo test" --keys "[WaitFor test]" --delimiter "[]"
 `)
@@ -242,4 +294,46 @@ func parseDelimiter(delimiter string) (rune, rune, error) {
 	}
 
 	return runes[0], runes[1], nil
+}
+
+// formatRawBytes formats raw bytes according to the specified format
+func formatRawBytes(rawBytes []byte, format string) ([]byte, error) {
+	switch format {
+	case "binary":
+		return rawBytes, nil
+	case "hex":
+		return []byte(hex.EncodeToString(rawBytes)), nil
+	case "escaped":
+		return []byte(escapeBytes(rawBytes)), nil
+	default:
+		return nil, fmt.Errorf("unsupported format: %s", format)
+	}
+}
+
+// escapeBytes converts raw bytes to escaped string representation
+func escapeBytes(data []byte) string {
+	var result strings.Builder
+	for _, b := range data {
+		if b >= 32 && b <= 126 && b != '\\' {
+			// Printable ASCII characters (except backslash)
+			result.WriteByte(b)
+		} else {
+			// Non-printable or special characters
+			switch b {
+			case '\n':
+				result.WriteString("\\n")
+			case '\r':
+				result.WriteString("\\r")
+			case '\t':
+				result.WriteString("\\t")
+			case '\\':
+				result.WriteString("\\\\")
+			case '\x1b':
+				result.WriteString("\\x1b")
+			default:
+				result.WriteString("\\x" + hex.EncodeToString([]byte{b}))
+			}
+		}
+	}
+	return result.String()
 }

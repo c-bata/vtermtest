@@ -39,6 +39,10 @@ type Emulator struct {
 	dir         string
 
 	assertCfg assertConfig
+
+	// Raw bytes collection
+	collectRawBytes bool
+	rawBytes        []byte
 }
 
 // New creates a new Emulator with the specified terminal dimensions.
@@ -49,6 +53,13 @@ func New(rows, cols uint16) *Emulator {
 		cols:       cols,
 		readerDone: make(chan struct{}),
 	}
+}
+
+// EnableRawBytesCollection enables collection of raw bytes from PTY.
+// When enabled, all bytes read from PTY are stored and can be retrieved with GetRawBytes().
+func (e *Emulator) EnableRawBytesCollection() *Emulator {
+	e.collectRawBytes = true
+	return e
 }
 
 // Command sets the command to execute. Returns self for method chaining.
@@ -112,6 +123,10 @@ func (e *Emulator) readLoop() {
 		n, err := e.ptmx.Read(buf)
 		if n > 0 {
 			e.mu.Lock()
+			// Collect raw bytes if enabled
+			if e.collectRawBytes {
+				e.rawBytes = append(e.rawBytes, buf[:n]...)
+			}
 			_, writeErr := e.vt.Write(buf[:n])
 			if writeErr == nil {
 				e.screen.Flush()
@@ -328,4 +343,21 @@ func (e *Emulator) Resize(rows, cols uint16) error {
 	e.lastActivity = time.Now()
 
 	return nil
+}
+
+// GetRawBytes returns the raw bytes collected from PTY.
+// Raw bytes collection must be enabled with EnableRawBytesCollection().
+// Returns a copy of the collected bytes.
+func (e *Emulator) GetRawBytes() []byte {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	if !e.collectRawBytes {
+		return nil
+	}
+
+	// Return a copy to prevent external modification
+	result := make([]byte, len(e.rawBytes))
+	copy(result, e.rawBytes)
+	return result
 }

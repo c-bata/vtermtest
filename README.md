@@ -59,6 +59,8 @@ OPTIONS:
     --env STRING        Environment variables (KEY=VALUE,...)
     --dir STRING        Working directory
     --delimiter STRING  DSL tag delimiters (default: "<>")
+    --raw-output        Output raw bytes from PTY instead of rendered screen
+    --raw-format STRING Raw output format: binary, hex, escaped (default: binary)
 
 KEY DSL:
     Text: hello world
