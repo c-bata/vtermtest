@@ -7,6 +7,8 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
+// GetScreenText returns the entire terminal screen as a string.
+// Lines are trimmed of trailing spaces and joined with newlines.
 func (e *Emulator) GetScreenText() (string, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -62,6 +64,8 @@ func (e *Emulator) getLine(row int) string {
 	return line.String()
 }
 
+// GetLine returns a specific line from the terminal screen.
+// Row index starts at 0. Trailing spaces are trimmed.
 func (e *Emulator) GetLine(row int) (string, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()

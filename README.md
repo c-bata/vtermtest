@@ -21,6 +21,7 @@ go get github.com/c-bata/vtermtest
 package myapp_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -33,11 +34,11 @@ import (
 func Test_GoPrompt_InlineAssert(t *testing.T) {
 	// rows, cols
 	emu := vtermtest.New(4, 50).
-		.Command("go", "run", "./_examples/go_prompt_example.go").
-		.Env("LANG=C.UTF-8")
+		Command("go", "run", "./_examples/go_prompt_example.go").
+		Env("LANG=C.UTF-8")
 	t.Cleanup(func() { _ = emu.Close() })
 
-	if err := emu.Start(t.Context()); err != nil {
+	if err := emu.Start(context.Background()); err != nil {
 		t.Fatalf("start: %v", err)
 	}
 
@@ -68,6 +69,7 @@ func Test_GoPrompt_InlineAssert(t *testing.T) {
 package myapp_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -79,26 +81,34 @@ import (
 
 func TestSnapshotGoPrompt(t *testing.T) {
 	emu := vtermtest.New(4, 50).
-		.Command("go", "run", "_examples/go_prompt_example.go").
-		.Env("LANG=C.UTF-8")
+		Command("go", "run", "_examples/go_prompt_example.go").
+		Env("LANG=C.UTF-8")
 	t.Cleanup(func() { _ = emu.Close() })
 
-	err := emu.Start(t.Context());
+	if err := emu.Start(context.Background()); err != nil {
+		t.Fatalf("start: %v", err)
+	}
 
 	_ = emu.KeyPress(keys.Text("SELECT * FROM "), keys.Tab);
 	if !emu.WaitStable(50*time.Millisecond, 2*time.Second) {
 		t.Fatalf("screen did not stabilize")
 	}
-    screen, err := emu.GetScreenText()
+	screen, err := emu.GetScreenText()
+	if err != nil {
+		t.Fatalf("get screen: %v", err)
+	}
 
 	// Golden comparison
 	golden := filepath.Join("testdata", "sql_example.golden.txt")
-	if update := os.Getenv("VTERMTEST_GOLDEN_UPDATE") == "1" {
+	if os.Getenv("VTERMTEST_GOLDEN_UPDATE") == "1" {
 		if err := os.WriteFile(golden, []byte(screen), 0o644); err != nil {
 			t.Fatalf("write golden: %v", err)
 		}
 	} else {
 		expect, err := os.ReadFile(golden)
+		if err != nil {
+			t.Fatalf("read golden: %v", err)
+		}
 		if string(expect) != screen {
 			t.Fatalf("screen mismatch.\n--- want ---\n%s\n--- got ---\n%s", expect, screen)
 		}

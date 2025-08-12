@@ -1,3 +1,4 @@
+// Package vtermtest provides snapshot testing for interactive TUIs/REPLs using a real PTY and libvterm.
 package vtermtest
 
 import (
@@ -15,6 +16,8 @@ import (
 	libvterm "github.com/mattn/go-libvterm"
 )
 
+// Emulator represents a terminal emulator for testing interactive programs.
+// It creates a PTY, launches a process, and uses libvterm to emulate terminal behavior.
 type Emulator struct {
 	rows uint16
 	cols uint16
@@ -37,6 +40,8 @@ type Emulator struct {
 	assertCfg assertConfig
 }
 
+// New creates a new Emulator with the specified terminal dimensions.
+// rows and cols specify the terminal size in characters.
 func New(rows, cols uint16) *Emulator {
 	return &Emulator{
 		rows:       rows,
@@ -45,22 +50,28 @@ func New(rows, cols uint16) *Emulator {
 	}
 }
 
+// Command sets the command to execute. Returns self for method chaining.
 func (e *Emulator) Command(path string, args ...string) *Emulator {
 	e.commandPath = path
 	e.commandArgs = args
 	return e
 }
 
+// Env adds environment variables. Multiple calls append variables.
+// Format: "KEY=value". Returns self for method chaining.
 func (e *Emulator) Env(env ...string) *Emulator {
 	e.env = append(e.env, env...)
 	return e
 }
 
+// Dir sets the working directory for the command. Returns self for method chaining.
 func (e *Emulator) Dir(dir string) *Emulator {
 	e.dir = dir
 	return e
 }
 
+// Start launches the command in a PTY and begins terminal emulation.
+// The context can be used to control the lifetime of the process.
 func (e *Emulator) Start(ctx context.Context) error {
 	if e.commandPath == "" {
 		return errors.New("no command specified")
@@ -116,6 +127,8 @@ func (e *Emulator) readLoop() {
 	}
 }
 
+// Close terminates the process and cleans up resources.
+// It closes the PTY, kills the process if still running, and waits for cleanup.
 func (e *Emulator) Close() error {
 	var errs []error
 
@@ -163,6 +176,8 @@ func (e *Emulator) Close() error {
 	return nil
 }
 
+// KeyPress sends keystrokes to the terminal.
+// Use the keys package for special keys (e.g., keys.Tab, keys.Enter).
 func (e *Emulator) KeyPress(keys ...[]byte) error {
 	if e.ptmx == nil {
 		return errors.New("emulator not started")
@@ -176,6 +191,10 @@ func (e *Emulator) KeyPress(keys ...[]byte) error {
 	return nil
 }
 
+// WaitStable waits until the screen output is stable (no changes for 'quiet' duration).
+// Returns true if stable within timeout, false if timeout exceeded.
+// quiet: duration of inactivity to consider stable
+// timeout: maximum time to wait
 func (e *Emulator) WaitStable(quiet, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 
@@ -196,7 +215,8 @@ func (e *Emulator) WaitStable(quiet, timeout time.Duration) bool {
 	}
 }
 
-// Resize changes the terminal size
+// Resize changes the terminal size dynamically.
+// Both PTY and libvterm are resized to match the new dimensions.
 func (e *Emulator) Resize(rows, cols uint16) error {
 	if e.ptmx == nil {
 		return errors.New("emulator not started")

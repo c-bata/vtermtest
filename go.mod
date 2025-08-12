@@ -1,6 +1,6 @@
 module github.com/c-bata/vtermtest
 
-go 1.24.3
+go 1.19
 
 require (
 	github.com/creack/pty v1.1.24 // indirect

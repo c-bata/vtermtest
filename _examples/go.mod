@@ -1,6 +1,6 @@
 module github.com/c-bata/vtermtest/_examples
 
-go 1.24.3
+go 1.19
 
 require (
 	github.com/c-bata/go-prompt v0.2.7-0.20250812090649-d000795a4f93
