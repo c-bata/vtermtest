@@ -1,0 +1,19 @@
+name: Close Pull Requests
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  close-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Close Pull Request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "Thank you for your interest in contributing to this project! However, this repository is not currently accepting pull requests. This is a personal project and we prefer to handle development internally. This pull request will be automatically closed."
+          gh pr close ${{ github.event.pull_request.number }} --comment "Automatically closed - not accepting pull requests at this time."
