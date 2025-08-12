@@ -11,13 +11,21 @@ Feed keystrokes (printable + special keys) and capture the rendered screen as pl
 go get github.com/c-bata/vtermtest
 ```
 
-> [!NOTE]
-> Requires CGO and a working libvterm toolchain.
+<details>
+<summary>How to install libvterm</summary>
+
+```
+$ brew install libvterm
+or
+$ apt install libvterm-dev
+```
+
+</details>
 
 ### Command-line Interface
 
 ```
-$ vtermtest-cli --command kube-prompt --keys "get p<Tab>" --rows 12
+$ vtermtest-cli --command kube-prompt --keys "get p<Tab>"
 kube-prompt v1.0.11 (rev-ac5964a)
 Please use `exit` or `Ctrl-D` to exit this program.
 >>> get p
@@ -27,10 +35,10 @@ Please use `exit` or `Ctrl-D` to exit this program.
           podsecuritypolicies
           podtemplates
           pvc
-
-
-$
 ```
+
+<details>
+<summary>Command-line Options</summary>
 
 ```
 $ vtermtest-cli --help
@@ -61,7 +69,9 @@ KEY DSL:
     Escape: << (literal <)
 ```
 
-### Quickstart (Go API)
+</details>
+
+### Go API
 
 ```go
 package myapp_test
