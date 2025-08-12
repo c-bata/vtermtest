@@ -211,8 +211,11 @@ func (e *Emulator) WithBackspaceBS(useBS bool) *Emulator       // default DEL
 ## Unicode, width & wrapping
 
 * libvterm handles most ECMA-48/ANSI cursor movement, erasing, and wrapping.
-* For visual width–sensitive tests (CJK/fullwidth/combining), keep a consistent UTF-8 locale and a fixed size.
-* If you need `wcwidth`-aware post-processing for exact column counts, we can add an optional pass later.
+* For visual width–sensitive tests (CJK/fullwidth/combining), we use `github.com/mattn/go-runewidth` to calculate proper display widths:
+  * Full-width characters (CJK, emoji) are correctly measured as 2 columns
+  * Zero-width characters (combining marks) are handled appropriately
+  * The `GetScreenText()` method applies runewidth calculations when extracting text to ensure column positions align with visual expectations
+* Consistent UTF-8 locale (`LANG=C.UTF-8`) and fixed terminal size are still recommended for deterministic tests.
 
 ## Portability
 
