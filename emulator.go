@@ -28,6 +28,7 @@ type Emulator struct {
 
 	vt     *libvterm.VTerm
 	screen *libvterm.Screen
+	state  *libvterm.State
 
 	mu           sync.Mutex
 	lastActivity time.Time
@@ -108,7 +109,17 @@ func (e *Emulator) Start(ctx context.Context) error {
 
 	e.vt = libvterm.New(int(e.rows), int(e.cols))
 	e.screen = e.vt.ObtainScreen()
+	e.state = e.vt.ObtainState()
 	e.screen.Reset(true)
+
+	// Set output callback to receive terminal responses (DSR, etc)
+	// This writes DSR responses back to PTY so programs can read them
+	e.vt.SetOutputCallback(func(data []byte) {
+		// Write DSR response back to PTY so the program can read it
+		if e.ptmx != nil {
+			e.ptmx.Write(data)
+		}
+	})
 
 	go e.readLoop()
 
@@ -361,3 +372,21 @@ func (e *Emulator) GetRawBytes() []byte {
 	copy(result, e.rawBytes)
 	return result
 }
+
+// GetCursorPosition returns the current cursor position from libvterm's internal state.
+// Returns the 1-based row and column position.
+func (e *Emulator) GetCursorPosition() (row, col int, err error) {
+	if e.state == nil {
+		return 0, 0, errors.New("emulator not started")
+	}
+
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	// Get cursor position from libvterm state (0-based)
+	r, c := e.state.GetCursorPos()
+	
+	// Convert to 1-based for consistency with terminal conventions
+	return r + 1, c + 1, nil
+}
+

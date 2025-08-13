@@ -42,6 +42,9 @@ var (
 	CtrlX = []byte{0x18}
 	CtrlY = []byte{0x19}
 	CtrlZ = []byte{0x1A}
+
+	// Device Status Report (DSR) sequences
+	DSR = []byte{0x1B, 0x5B, 0x36, 0x6E} // ESC[6n - Request cursor position
 )
 
 func Text(s string) []byte {
